@@ -1,0 +1,59 @@
+---
+- hosts: ubuntu
+  remote_user: cloud
+  become: True
+
+  tasks:
+#  - include_vars: users.yml
+#  - name: Creating users
+#    user: name= "{{item.username}}"
+#    with_items: "{{users}}"
+
+#  - name: Placing SSH key to authorized key file
+#  authorized_key: user= "{{item.username}}" key=  "{{lookup('file','./keyfiles/authorized_keys.{{item.username}}.pub')}}"
+#  with_items: "{{users}}"
+
+  - name: deleting udev rules file
+    file:
+      state: absent
+      path: "/etc/udev/rules.d/70-persistent-net.rules"
+  - name: cloud-init warning file skip
+    file:
+      state: touch
+      path: "/home/cloud/.cloud-warnings.skip"
+  - name: cloud-init warning skip for root      
+    file:
+      state: touch
+      path: "/root/.cloud-warnings.skip"
+  - name: install cloud-init
+    apt:
+      name: cloud-init
+      state:  present
+      update_cache: yes
+  - name: sshd config update
+    template: src=/root/abkumar/sshd_config.j2 dest=/etc/ssh/sshd_config backup=yes owner=0 group=0 mode=0644 validate='/usr/sbin/sshd -T -f %s'
+    notify:
+    - restart sshd
+  - name: cloud-init config file update
+    template: src=/root/abkumar/cloud_cfg.j2 dest=/etc/cloud/cloud.cfg backup=yes owner=0 group=0 mode=0644
+  - name: start cloud init servcies
+    systemd:
+      name: "{{item}}"
+      state: started
+    with_items:
+      - cloud-init-local.service
+      - cloud-init.service
+      - cloud-config.service
+      - cloud-final.service
+    ignore_errors: yes    
+  - name: delete cloud-init directories
+    file: path=/var/lib/cloud state=absent
+  - name: delete log files directory
+    file: path=/var/log/ state=absent
+  - shell: /bin/echo >/root/.ssh/authorized_keys
+  - shell: /bin/echo >/home/cloud/.ssh/authorized_keys
+  - shell: /bin/echo >/root/.bash_history
+  - shell: /bin/echo >/home/cloud/.bash_history
+  handlers:
+    - name: restart sshd
+      service: name=sshd state=restarted
