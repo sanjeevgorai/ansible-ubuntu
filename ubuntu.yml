@@ -31,11 +31,11 @@
       state:  present
       update_cache: yes
   - name: sshd config update
-    template: src=/root/abkumar/sshd_config.j2 dest=/etc/ssh/sshd_config backup=yes owner=0 group=0 mode=0644 validate='/usr/sbin/sshd -T -f %s'
+    template: src=/root/abkumar/ansible-ubuntu/sshd_config.j2 dest=/etc/ssh/sshd_config backup=yes owner=0 group=0 mode=0644 validate='/usr/sbin/sshd -T -f %s'
     notify:
     - restart sshd
   - name: cloud-init config file update
-    template: src=/root/abkumar/cloud_cfg.j2 dest=/etc/cloud/cloud.cfg backup=yes owner=0 group=0 mode=0644
+    template: src=/root/abkumar/ansible-ubuntu/cloud_cfg.j2 dest=/etc/cloud/cloud.cfg backup=yes owner=0 group=0 mode=0644
   - name: start cloud init servcies
     systemd:
       name: "{{item}}"
